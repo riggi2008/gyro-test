@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gyro Test</title>
+</head>
+<body>
+<button id="startBtn" style="font-size:20px;padding:15px;">Avvia trasmissione giroscopio</button>
+<div id="status">Non avviato</div>
+<script>
+// ⚠️ Sostituisci con l'IP LAN del tuo computer, es: 192.168.1.100
+const WS_URL = 'ws://192.168.1.100:8765';
+let ws;
+
+document.getElementById('startBtn').onclick = async () => {
+    // Deve essere chiamato all'interno di un evento click, iOS richiede un'azione utente
+    if (typeof DeviceMotionEvent.requestPermission === 'function') {
+        const res = await DeviceMotionEvent.requestPermission();
+        if (res !== 'granted') {
+            document.getElementById('status').textContent = 'Permesso negato';
+            return;
+        }
+    }
+    ws = new WebSocket(WS_URL);
+    ws.onopen = () => {
+        document.getElementById('status').textContent = 'Connesso, trasmetto...';
+        window.addEventListener('devicemotion', (e) => {
+            const g = e.rotationRate; // gradi/secondo
+            if (g && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ alpha: g.alpha, beta: g.beta, gamma: g.gamma }));
+            }
+        });
+    };
+    ws.onerror = () => {
+        document.getElementById('status').textContent = 'Connessione fallita, controlla IP e firewall';
+    };
+};
+</script>
+</body>
+</html>
